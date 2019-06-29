@@ -48,13 +48,13 @@ def specaug(spec, W=80, F=27, T=70, num_freq_masks=2, num_time_masks=2, p=0.2, r
     :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
     """
     if replace_with_zero:
-        replace_with_zero = 0
+        pad_value = 0
     else:
-        replace_with_zero = spec.mean()
+        pad_value = spec.mean()
     return time_mask(
         freq_mask(time_warp(spec.transpose(0, 1), W=W),
-                  F=F, num_masks=num_freq_masks, replace_with_zero=replace_with_zero),
-        T=T, num_masks=num_time_masks, p=p, replace_with_zero=replace_with_zero).transpose(0, 1)
+                  F=F, num_masks=num_freq_masks, pad_value=pad_value),
+        T=T, num_masks=num_time_masks, p=p, pad_value=pad_value).transpose(0, 1)
 
 
 def time_warp(spec, W=5):
@@ -82,13 +82,13 @@ def time_warp(spec, W=5):
     return warped_spectro.squeeze(3).squeeze(0)
 
 
-def freq_mask(spec, F=30, num_masks=1, replace_with_zero=None):
+def freq_mask(spec, F=30, num_masks=1, pad_value=0):
     """Frequency masking
 
     :param torch.Tensor spec: input tensor with shape (T, dim)
     :param int F: maximum width of each mask
     :param int num_masks: number of masks
-    :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
+    :param bool pad_value: value for padding
     """
     cloned = spec.unsqueeze(0).clone()
     num_mel_channels = cloned.shape[1]
@@ -102,20 +102,18 @@ def freq_mask(spec, F=30, num_masks=1, replace_with_zero=None):
             return cloned.squeeze(0)
 
         mask_end = random.randrange(f_zero, f_zero + f)
-        if replace_with_zero is None:
-            cloned[0][f_zero:mask_end] = 0
-        else:
-            cloned[0][f_zero:mask_end] = replace_with_zero
+        cloned[0][f_zero:mask_end] = pad_value
+
     return cloned.squeeze(0)
 
 
-def time_mask(spec, T=40, num_masks=1, p=0.2, replace_with_zero=None):
+def time_mask(spec, T=40, num_masks=1, p=0.2, pad_value=0):
     """Time masking
 
     :param torch.Tensor spec: input tensor with shape (T, dim)
     :param int T: maximum width of each mask
     :param int num_masks: number of masks
-    :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
+    :param bool pad_value: value for padding
     """
     cloned = spec.unsqueeze(0).clone()
     len_spectro = cloned.shape[2]
@@ -130,10 +128,7 @@ def time_mask(spec, T=40, num_masks=1, p=0.2, replace_with_zero=None):
             return cloned.squeeze(0)
 
         mask_end = random.randrange(t_zero, t_zero + t)
-        if replace_with_zero is None:
-            cloned[0][:, t_zero:mask_end] = 0
-        else:
-            cloned[0][:, t_zero:mask_end] = replace_with_zero
+        cloned[0][:, t_zero:mask_end] = pad_value
     return cloned.squeeze(0)
 
 
