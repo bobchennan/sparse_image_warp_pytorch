@@ -72,10 +72,10 @@ def time_warp(spec, W=5):
 
     y = num_rows / 2.0
 
-    point_to_warp = spec_len / 2.0#random.randrange(W, spec_len - W)
+    point_to_warp = random.randrange(W, spec_len - W)
 
     # Uniform distribution from (0,W) with chance to be up to W negative
-    dist_to_warp = W#random.randrange(-W, W)
+    dist_to_warp = random.randrange(-W, W)
     src_pts, dest_pts = (torch.tensor([[[y, point_to_warp], [0, 0], [0, spec_len - 1], [num_rows - 1, 0], [num_rows - 1, spec_len - 1]]], device=device),
                          torch.tensor([[[y, point_to_warp + dist_to_warp], [0, 0], [0, spec_len - 1], [num_rows - 1, 0], [num_rows - 1, spec_len - 1]]], device=device))
     warped_spectro, dense_flows = sparse_image_warp(spec, src_pts, dest_pts)
@@ -157,12 +157,6 @@ def sparse_image_warp(img_tensor,
         regularization_weight)
 
     dense_flows = create_dense_flows(flattened_flows, batch_size, image_height, image_width)
-    #import matplotlib as mpl
-    #mpl.use('Agg')
-    #import matplotlib.pyplot as plt
-    #fig = plt.figure()
-    #plt.quiver(flattened_grid_locations[40:100,0], flattened_grid_locations[40:100,1], dense_flows[0,40:100,0], dense_flows[0,40:100,1])
-    #fig.savefig('flow.png')
 
     warped_image = dense_image_warp(img_tensor, dense_flows)
 
