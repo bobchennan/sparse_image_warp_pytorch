@@ -1,7 +1,7 @@
 # sparse_image_warp_pytorch
-Provides a pytorch implementation of sparse_image_warp and an example of spec_augment
+Provides a pytorch implementation of sparse_image_warp and an example of spec_augment.
 
-The original implementation comes from [zcaceres](https://github.com/zcaceres/spec_augment).
+Original implementation comes from [zcaceres](https://github.com/zcaceres/spec_augment).
 
 But they are several errors in their implementation:
 
