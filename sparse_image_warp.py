@@ -31,107 +31,6 @@ import random
 import torch
 
 
-def specaug(spec, W=80, F=27, T=70, num_freq_masks=2, num_time_masks=2, p=0.2, replace_with_zero=False):
-    """SpecAugment
-
-    Reference: SpecAugment: A Simple Data Augmentation Method for Automatic Speech Recognition
-        (https://arxiv.org/pdf/1904.08779.pdf)
-
-    This implementation modified from https://github.com/zcaceres/spec_augment
-
-    :param torch.Tensor spec: input tensor with the shape (T, dim)
-    :param int W: time warp parameter
-    :param int F: maximum width of each freq mask
-    :param int T: maximum width of each time mask
-    :param int num_freq_masks: number of frequency masks
-    :param int num_time_masks: number of time masks
-    :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
-    """
-    if replace_with_zero:
-        pad_value = 0
-    else:
-        pad_value = spec.mean()
-    return time_mask(
-        freq_mask(time_warp(spec.transpose(0, 1), W=W),
-                  F=F, num_masks=num_freq_masks, pad_value=pad_value),
-        T=T, num_masks=num_time_masks, p=p, pad_value=pad_value).transpose(0, 1)
-
-
-def time_warp(spec, W=5):
-    """Time warping
-
-    :param torch.Tensor spec: input tensor with shape (T, dim)
-    :param int W: time warp parameter
-    """
-    if W == 0:
-        return spec
-    spec = spec.unsqueeze(0)
-    num_rows = spec.shape[1]
-    spec_len = spec.shape[2]
-    device = spec.device
-
-    y = num_rows / 2.0
-
-    point_to_warp = random.randrange(W, spec_len - W)
-
-    # Uniform distribution from (0,W) with chance to be up to W negative
-    dist_to_warp = random.randrange(-W, W)
-    src_pts, dest_pts = (torch.tensor([[[y, point_to_warp], [0, 0], [0, spec_len - 1], [num_rows - 1, 0], [num_rows - 1, spec_len - 1]]], device=device),
-                         torch.tensor([[[y, point_to_warp + dist_to_warp], [0, 0], [0, spec_len - 1], [num_rows - 1, 0], [num_rows - 1, spec_len - 1]]], device=device))
-    warped_spectro, dense_flows = sparse_image_warp(spec, src_pts, dest_pts)
-    return warped_spectro.squeeze(3).squeeze(0)
-
-
-def freq_mask(spec, F=30, num_masks=1, pad_value=0):
-    """Frequency masking
-
-    :param torch.Tensor spec: input tensor with shape (T, dim)
-    :param int F: maximum width of each mask
-    :param int num_masks: number of masks
-    :param bool pad_value: value for padding
-    """
-    cloned = spec.unsqueeze(0).clone()
-    num_mel_channels = cloned.shape[1]
-
-    for i in range(0, num_masks):
-        f = random.randrange(0, F)
-        f_zero = random.randrange(0, num_mel_channels - f)
-
-        # avoids randrange error if values are equal and range is empty
-        if (f_zero == f_zero + f):
-            return cloned.squeeze(0)
-
-        mask_end = random.randrange(f_zero, f_zero + f)
-        cloned[0][f_zero:mask_end] = pad_value
-
-    return cloned.squeeze(0)
-
-
-def time_mask(spec, T=40, num_masks=1, p=0.2, pad_value=0):
-    """Time masking
-
-    :param torch.Tensor spec: input tensor with shape (T, dim)
-    :param int T: maximum width of each mask
-    :param int num_masks: number of masks
-    :param bool pad_value: value for padding
-    """
-    cloned = spec.unsqueeze(0).clone()
-    len_spectro = cloned.shape[2]
-    T = min(T, int(len_spectro * p / num_masks))
-
-    for i in range(0, num_masks):
-        t = random.randrange(0, T)
-        t_zero = random.randrange(0, len_spectro - t)
-
-        # avoids randrange error if values are equal and range is empty
-        if (t_zero == t_zero + t):
-            return cloned.squeeze(0)
-
-        mask_end = random.randrange(t_zero, t_zero + t)
-        cloned[0][:, t_zero:mask_end] = pad_value
-    return cloned.squeeze(0)
-
-
 def sparse_image_warp(img_tensor,
                       source_control_point_locations,
                       dest_control_point_locations,
@@ -454,3 +353,105 @@ def interpolate_bilinear(grid,
     interp = alphas[0] * (interp_bottom - interp_top) + interp_top
 
     return interp
+
+
+def specaug(spec, W=80, F=27, T=70, num_freq_masks=2, num_time_masks=2, p=0.2, replace_with_zero=False):
+    """SpecAugment
+
+    Reference: SpecAugment: A Simple Data Augmentation Method for Automatic Speech Recognition
+        (https://arxiv.org/pdf/1904.08779.pdf)
+
+    This implementation modified from https://github.com/zcaceres/spec_augment
+
+    :param torch.Tensor spec: input tensor with the shape (T, dim)
+    :param int W: time warp parameter
+    :param int F: maximum width of each freq mask
+    :param int T: maximum width of each time mask
+    :param int num_freq_masks: number of frequency masks
+    :param int num_time_masks: number of time masks
+    :param bool replace_with_zero: if True, masked parts will be filled with 0, if False, filled with mean
+    """
+    if replace_with_zero:
+        pad_value = 0
+    else:
+        pad_value = spec.mean()
+    return time_mask(
+        freq_mask(time_warp(spec.transpose(0, 1), W=W),
+                  F=F, num_masks=num_freq_masks, pad_value=pad_value),
+        T=T, num_masks=num_time_masks, p=p, pad_value=pad_value).transpose(0, 1)
+
+
+def time_warp(spec, W=5):
+    """Time warping
+
+    :param torch.Tensor spec: input tensor with shape (T, dim)
+    :param int W: time warp parameter
+    """
+    if W == 0:
+        return spec
+    spec = spec.unsqueeze(0)
+    num_rows = spec.shape[1]
+    spec_len = spec.shape[2]
+    device = spec.device
+
+    y = num_rows / 2.0
+
+    point_to_warp = random.randrange(W, spec_len - W)
+
+    # Uniform distribution from (0,W) with chance to be up to W negative
+    dist_to_warp = random.randrange(-W, W)
+    src_pts, dest_pts = (torch.tensor([[[y, point_to_warp], [0, 0], [0, spec_len - 1], [num_rows - 1, 0], [num_rows - 1, spec_len - 1]]], device=device),
+                         torch.tensor([[[y, point_to_warp + dist_to_warp], [0, 0], [0, spec_len - 1], [num_rows - 1, 0], [num_rows - 1, spec_len - 1]]], device=device))
+    warped_spectro, dense_flows = sparse_image_warp(spec, src_pts, dest_pts)
+    return warped_spectro.squeeze(3).squeeze(0)
+
+
+def freq_mask(spec, F=30, num_masks=1, pad_value=0):
+    """Frequency masking
+
+    :param torch.Tensor spec: input tensor with shape (T, dim)
+    :param int F: maximum width of each mask
+    :param int num_masks: number of masks
+    :param bool pad_value: value for padding
+    """
+    cloned = spec.unsqueeze(0).clone()
+    num_mel_channels = cloned.shape[1]
+
+    for i in range(0, num_masks):
+        f = random.randrange(0, F)
+        f_zero = random.randrange(0, num_mel_channels - f)
+
+        # avoids randrange error if values are equal and range is empty
+        if (f_zero == f_zero + f):
+            return cloned.squeeze(0)
+
+        mask_end = random.randrange(f_zero, f_zero + f)
+        cloned[0][f_zero:mask_end] = pad_value
+
+    return cloned.squeeze(0)
+
+
+def time_mask(spec, T=40, num_masks=1, p=0.2, pad_value=0):
+    """Time masking
+
+    :param torch.Tensor spec: input tensor with shape (T, dim)
+    :param int T: maximum width of each mask
+    :param int num_masks: number of masks
+    :param bool pad_value: value for padding
+    """
+    cloned = spec.unsqueeze(0).clone()
+    len_spectro = cloned.shape[2]
+    T = min(T, int(len_spectro * p / num_masks))
+
+    for i in range(0, num_masks):
+        t = random.randrange(0, T)
+        t_zero = random.randrange(0, len_spectro - t)
+
+        # avoids randrange error if values are equal and range is empty
+        if (t_zero == t_zero + t):
+            return cloned.squeeze(0)
+
+        mask_end = random.randrange(t_zero, t_zero + t)
+        cloned[0][:, t_zero:mask_end] = pad_value
+    return cloned.squeeze(0)
+
