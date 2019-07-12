@@ -384,7 +384,7 @@ def specaug(spec, W=80, F=27, T=70, num_freq_masks=2, num_time_masks=2, p=0.2, r
 def time_warp(spec, W=5):
     """Time warping
 
-    :param torch.Tensor spec: input tensor with shape (T, dim)
+    :param torch.Tensor spec: input tensor with shape (dim, T)
     :param int W: time warp parameter
     """
     if W == 0:
@@ -409,7 +409,7 @@ def time_warp(spec, W=5):
 def freq_mask(spec, F=30, num_masks=1, pad_value=0):
     """Frequency masking
 
-    :param torch.Tensor spec: input tensor with shape (T, dim)
+    :param torch.Tensor spec: input tensor with shape (dim, T)
     :param int F: maximum width of each mask
     :param int num_masks: number of masks
     :param bool pad_value: value for padding
@@ -434,7 +434,7 @@ def freq_mask(spec, F=30, num_masks=1, pad_value=0):
 def time_mask(spec, T=40, num_masks=1, p=0.2, pad_value=0):
     """Time masking
 
-    :param torch.Tensor spec: input tensor with shape (T, dim)
+    :param torch.Tensor spec: input tensor with shape (dim, T)
     :param int T: maximum width of each mask
     :param int num_masks: number of masks
     :param bool pad_value: value for padding
